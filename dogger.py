@@ -1,13 +1,3 @@
-
-#if time is super fast, dont go for bones further than 2? spaces - for AI
-#tell bot to wait on bone for certain amount of time depending on time cycle?
-#func at top of advance() - determine where AI to go, how many spaces left right fr bone, one space at a time move, the move to safe space b4 rest of func happens
-#multithread bone get detection?
-#def specific goleft goright funcs for AI to use - time delays and such - find bone/safespot func as well
-#listener for object property? (bone) - 
-#separate entity for AI - talk to each other - communicate to one another
-
-from gettext import dpgettext
 from tkinter import *
 import tkinter as tk
 from PIL import Image, ImageTk
@@ -15,15 +5,15 @@ import time
 import random
 from playsound import playsound
 import threading
-import vlc
-import multiprocessing
-
+#import vlc
+#import multiprocessing
+#from multiprocess import Process #pip install multiprocess   
+#from multiprocessing import Process
 from threading import Thread
 from functools import partial
 
-
-#print("AI (1) or nonAI (2) mode: ")
-#mode = int(input())
+#mode 1 = AI mode
+#mode 2 = base game mode
 mode = 1
 
 class Bot:
@@ -35,129 +25,114 @@ class Bot:
         self.accel = accel
     def findBoneDistance(self, currPos, bonePos):
         posDiff = currPos - bonePos
-        print(currPos, bonePos)
-        print("posdiff", posDiff)
         if posDiff != 0:
             return posDiff
     def findBoneLR(self, posDiff):
-        print("posdiff", posDiff)
         if posDiff < 0:
             direction = "right"
         if posDiff > 0: 
             direction = "left"
         return direction
     def moveToBone(self, posDiff, direction):
-        AIBot.pos = doggy.getDogPos()
+        AIBot.pos = dogPlayer.getDogPos()
         amountMove = abs(posDiff)
-        print("AMOUNTMVOE", amountMove)
         if direction == "right":
-            AIBot.pos = doggy.getDogPos()
+            AIBot.pos = dogPlayer.getDogPos()
             while amountMove > 0:
-                print("in r loop")
-                #doggy.forceRight()
-                #doggy.setDog(doggy.getDogPos()+1)
+                #dogPlayer.forceRight()
+                #dogPlayer.setDog(dogPlayer.getDogPos()+1)
                 goRight()
-                AIBot.pos = doggy.getDogPos()
+                AIBot.pos = dogPlayer.getDogPos()
                 updateDoglbl()
                 time.sleep(.02)
                 amountMove = amountMove - 1
             AIBot.boneGot = True
-            AIBot.pos = doggy.getDogPos()
+            print("got bone")
+            AIBot.pos = dogPlayer.getDogPos()
         if direction == "left":
-            AIBot.pos = doggy.getDogPos()
+            AIBot.pos = dogPlayer.getDogPos()
             while amountMove > 0:
-                print(("in L loop"))
-                #doggy.forceLeft()
-                #doggy.setDog(doggy.getDogPos()-1)
+                #dogPlayer.forceLeft()
+                #dogPlayer.setDog(dogPlayer.getDogPos()-1)
                 goLeft()
-                AIBot.pos = doggy.getDogPos()
+                AIBot.pos = dogPlayer.getDogPos()
                 updateDoglbl()
                 time.sleep(.02)
                 amountMove = amountMove - 1
             AIBot.boneGot = True
-            print("END OF BONEGET - doggyget", doggy.getDogPos())
-            AIBot.pos = doggy.getDogPos()
+            print("got bone")
+            AIBot.pos = dogPlayer.getDogPos()
 
 
-    def moveToSafeSpot(self): #TODO try to get this to go to nearest safe spot instead of first 1 in search - split() carline on aiPos?
+    def moveToSafeSpot(self): 
         if AIBot.accel == "veryfast":
             time.sleep(.06)
         if AIBot.accel == "slow" or AIBot.accel == "med" or AIBot.accel == "fast":
             time.sleep(.1)
         #time.sleep(.1)
-        AIBot.pos = doggy.getDogPos()
+        AIBot.pos = dogPlayer.getDogPos()
         carLine = AIBot.carline
-        print("---")
-        print("current pos", AIBot.pos)
-        print("current carLine", carLine)
-        print("---")
         if carLine[AIBot.pos] == 0:
             AIBot.safe = True # dont need to move
             print("safe - DONT NEED TO MOVE")
             return "safe"
-        index = 0
-        for x in carLine:
-            if x == 0:
-                print(x)
-                if index < AIBot.pos:
-                    #go left
-                    while index < AIBot.pos:
-                        goLeft()
-                        AIBot.pos = doggy.getDogPos()
-                        updateDoglbl()
-                        time.sleep(.02)
-                    AIBot.safe = True
-                    print("safe")
-                    return "safe"
-                if index > AIBot.pos:
-                    while index > AIBot.pos:
+
+        #goes to CLOSEST safe spot (mimics human)
+        AIBot.pos = dogPlayer.getDogPos()
+        safeSpotFound = False
+        adjcounter = 1
+        while safeSpotFound == False:
+            #check if OOB 
+            if AIBot.pos + adjcounter <= 4:  #not OOB for go right
+                if carLine[AIBot.pos + adjcounter] == 0:
+                    #go right
+                    while adjcounter > 0:
                         goRight()
-                        AIBot.pos = doggy.getDogPos()
+                        AIBot.pos = dogPlayer.getDogPos()
                         updateDoglbl()
+                        adjcounter = adjcounter - 1
                         time.sleep(.02)
                     AIBot.safe = True
+                    safeSpotFound = True
                     print("safe")
                     return "safe"
-            index = index + 1
-        AIBot.safe = True
-
-
-        
+            if AIBot.pos - adjcounter >= 0: #not OOB for go left
+                if carLine[AIBot.pos - adjcounter] == 0:
+                    #go left
+                    while adjcounter > 0:
+                        goLeft()
+                        AIBot.pos = dogPlayer.getDogPos()
+                        updateDoglbl()
+                        adjcounter = adjcounter - 1
+                        time.sleep(.02)
+                    AIBot.safe = True
+                    safeSpotFound = True
+                    print("safe")
+                    return "safe"
+            adjcounter = adjcounter + 1
+            
             
 
 
-
-def AIBotThread(): #communicate to main thread through AI bot class that main thread passes data to -- #third thread for UI? -- class pseudo simple neural network - teach to process data accordingly
+def AIBotThread(): #communicate to main thread through AI bot class that main thread passes data to - class pseudo simple neural network - teach to process data accordingly
     time.sleep(.1)
-    while doggy.done == False:
+    while dogPlayer.done == False:
         #print("test")
         #time.sleep(2)
-        AIBot.pos = doggy.getDogPos()
+        AIBot.pos = dogPlayer.getDogPos()
         currPos = AIBot.pos 
         while AIBot.boneGot == False:
             #find bone
-            bonePos = doggy.getBonePos()
-            print("**********", currPos, bonePos)
+            bonePos = dogPlayer.getBonePos()
             posDiff = AIBot.findBoneDistance(currPos, bonePos)
-            print ("posdif", posDiff)
             direction = AIBot.findBoneLR(posDiff)
             AIBot.moveToBone(posDiff, direction)
-            print("bonegot", AIBot.boneGot)
         while AIBot.safe == False:
             #get to safe spot
-            #AIBot.safe = True
             time.sleep(.5)
-            # if AIBot.accel == "slow":
-            #     time.sleep(.5) #change based on accel
-            # if AIBot.accel == "med":
-            #     time.sleep(.4)
-            # if AIBot.accel == "fast":
-            #     time.sleep(.3)
-            # if AIBot.accel == "veryfast":
-            #     time.sleep(.2)
             AIBot.moveToSafeSpot()
-            print("thread flags done")
-                #reset to false when last iteration in main game/reset row on top, bonegot/safe
+            print("--thread flags done--")
+            #reset to false when last iteration in main game/reset row on top, bonegot/safe
             
 
 class Dog:
@@ -180,33 +155,97 @@ class Dog:
         self.bonePos = 20
     def setDone(self):
         self.done = True
- 
 
-doggy = Dog(2, False) 
+#--------------------------------------------------------------
+def virtualInputDisplayThread(): 
+    while dogPlayer.done == False:
+        while LRinputs.statusL == True:
+            unhighlightLarrow()
+        while LRinputs.statusR == True:
+            unhighlightRarrow()
 
-AIBot = Bot(False, False, 2, [0, 0, 0, 0, 0], "slow")
-
-
-
-
-
-
-
+class adaptiveInputs:
+    def __init__(self, statusR, statusL):
+        self.statusR = statusR
+        self.statusL = statusL
+#--------------------------------------------------------------
 
 def closeWindow(e):
     global window
     window.destroy()
-    doggy.setDone()
-    #AIThread.join()
-    #vThread.join()
+    dogPlayer.setDone()
 
+def updateDoglbl():
+    lblDog.grid(row=5, column = AIBot.pos)
 
+def goLeft():
+    dPos = dogPlayer.getDogPos()
+    #print('d = ',dPos)
+    if dPos>0:
+        dogPlayer.setDog(dPos-1)
+        dPos = dPos-1
+        lblDog.grid(row=5, column = dPos)
+        Llabel.configure(image=LlabelGreen)
+        LRinputs.statusL = True
+        print('left')
+        #print('current column: ', dPos) 
 
+def goRight():
+    dPos = dogPlayer.getDogPos()
+    #print('d = ',dPos)
+    if dPos<4:
+        dogPlayer.setDog(dPos+1)
+        dPos = dPos+1
+        lblDog.grid(row=5, column = dPos)
+        Rlabel.configure(image=RlabelGreen)
+        LRinputs.statusR = True
+        print('right')
+        #print('current column: ', dPos)  
+
+#bind left right arrow keys on keyboard
+def any_keypress(event):
+    currDog = dogPlayer.getDogPos()
+    if event.keysym == 'Right':
+        if currDog<4:
+            dogPlayer.setDog(currDog+1)
+            currDog = currDog+1
+            lblDog.grid(row=5, column=currDog)
+            Rlabel.configure(image=RlabelGreen)
+            LRinputs.statusR = True
+    if event.keysym == "Left":
+        if currDog>0:
+            dogPlayer.setDog(currDog-1)
+            currDog = currDog-1
+            lblDog.grid(row=5, column=currDog)
+            Llabel.configure(image=LlabelGreen)
+            LRinputs.statusL = True
+    if event.keysym == "Escape":
+        window.destroy()
+        #AIThread.join()
+        #vThread.join()
+            
+def unhighlightRarrow():
+    #print("in unhighlight R")
+    time.sleep(.05)
+    Rlabel.configure(image=RlabelBlank)
+    LRinputs.statusR = False
+
+def unhighlightLarrow():
+    #print("in unhighlight L")
+    time.sleep(.05)
+    Llabel.configure(image=LlabelBlank)
+    LRinputs.statusL = False
+#--------------------------------------------------------------
+#object instantiations
+LRinputs = adaptiveInputs(False, False)
+dogPlayer = Dog(2, False) 
+AIBot = Bot(False, False, 2, [0, 0, 0, 0, 0], "slow")
+#--------------------------------------------------------------
 
 #main game thread, game logic and function definitions
-#def mainGameThread():
 #create window
 window = tk.Tk()
+window.bind_all('<Key>', any_keypress) #bind keypresses to window and function defined above
 window.attributes("-topmost", True)
 # window.lift()
 # window.focus_force()
@@ -219,7 +258,6 @@ window.grid_columnconfigure(1, weight=1, uniform="key")
 window.grid_columnconfigure(2, weight=1, uniform="key")
 window.grid_columnconfigure(3, weight=1, uniform="key")
 window.grid_columnconfigure(4, weight=1, uniform="key")
-
 window.grid_rowconfigure(2, weight=1, uniform="key")
 window.grid_rowconfigure(3, weight=1, uniform="key")
 window.grid_rowconfigure(4, weight=1, uniform="key")
@@ -228,6 +266,7 @@ score = 0
 lblInstrucs = tk.Label(window, text = "DOGE THE CARS!! (use buttons or Left/Right arrow keys to play")
 lblLine0 = tk.Label(window, text = "*SCORE: "+ str(score) + "*")
 
+#dog image manipulation
 imgDog = Image.open('assets/dog.png')
 newdog = imgDog.resize((100, 50))
 imgDog2 = ImageTk.PhotoImage(newdog)
@@ -239,76 +278,34 @@ lblLine0.grid(row=1, column=0, columnspan=5)
 lblDog.grid(row=5, column = 2)
 
 
-def updateDoglbl():
-    lblDog.grid(row=5, column = AIBot.pos)
+#make / append adaptive LR button labels
+imgRlabel = Image.open('assets/RarrowBlank.png')
+newRlabel = imgRlabel.resize((80, 50))
+RlabelBlank = ImageTk.PhotoImage(newRlabel)
+Rlabel = Label(window, image=RlabelBlank)
+Rlabel.grid(row=7, column =3)
 
-#global currCol
-#currCol = 2
+imgLlabel = Image.open('assets/LarrowBlank.png')
+newLlabel = imgLlabel.resize((80, 50))
+LlabelBlank = ImageTk.PhotoImage(newLlabel)
+Llabel = Label(window, image=LlabelBlank)
+Llabel.grid(row=7, column =1)
 
-#update dog label thread - have to start here as well to have acess to window variables
-# def updateWindowThread():
-#     while doggy.done == False:
-#         lblDog.grid(row=5, column = AI.AIBot.pos)
+#prep highlight arrow images
+imgRlabel = Image.open('assets/RarrowGreen.png')
+newRlabel = imgRlabel.resize((80, 50))
+RlabelGreen = ImageTk.PhotoImage(newRlabel)
 
-# if mode == 1:
-#     dogLblThread = Thread(target=partial(updateWindowThread))
-#     dogLblThread.start()
+imgLlabel = Image.open('assets/LarrowGreen.png')
+newLlabel = imgLlabel.resize((80, 50))
+LlabelGreen = ImageTk.PhotoImage(newLlabel)
 
-#UI button clicks definitions
-def goLeft():
-    dPos = doggy.getDogPos()
-    #print('d = ',dPos)
-    if dPos>0:
-        doggy.setDog(dPos-1)
-        dPos = dPos-1
-        lblDog.grid(row=5, column = dPos)
-        #print('left')
-        #print('current column: ', dPos)
-    else:
-        print('cant go further left')    
-
+#UI button clicks definitions - if not playing with arrow keys - add to grid
 button1 = Button(window, text="<-", command=goLeft)
 button1.grid(row=6, column=1)
-
-def goRight():
-    dPos = doggy.getDogPos()
-    #print('d = ',dPos)
-    if dPos<4:
-        doggy.setDog(dPos+1)
-        dPos = dPos+1
-        lblDog.grid(row=5, column = dPos)
-        #print('right')
-        #print('current column: ', dPos)
-    else:
-        print('cant go further right')    
-
-
 button2 = Button(window, text="->", command=goRight)
 button2.grid(row=6, column=3)
 #rows 2-5       5 being where dog stays
-
-#bind left right arrow keys on keyboard
-def any_keypress(event):
-    print("in keypress")
-    currDog = doggy.getDogPos()
-    if event.keysym == 'Right':
-        if currDog<4:
-            doggy.setDog(currDog+1)
-            currDog = currDog+1
-            lblDog.grid(row=5, column=currDog)
-    if event.keysym == "Left":
-        if currDog>0:
-            doggy.setDog(currDog-1)
-            currDog = currDog-1
-            lblDog.grid(row=5, column=currDog)
-    if event.keysym == "Escape":
-        window.destroy()
-        #AIThread.join()
-        #vThread.join()
-            
-window.bind_all('<Key>', any_keypress)
-
-
 
 #image creation and labeling
 img1 = Image.open('assets/flintstones.png')
@@ -345,58 +342,37 @@ plus5 = Image.open('assets/plus5.png')
 newPlus5 = plus5.resize((100,50))
 pls5 = ImageTk.PhotoImage(newPlus5)
 lblPlus5 = tk.Label(window, image=pls5)
-    
-
-
-def testfunc():
-    goLeft()
-
-#global woof
-#woof = threading.Thread(target=playsound, args=('woof.mp3',), daemon=True)
-    
+ #--------------------------------------------------------------  THREADS
+#start AI thread if mode selected
 if mode == 1:
     AIThread = Thread(target=partial(AIBotThread))
     AIThread.start()
 
+#vThread = Thread(target=partial(virtualInputDisplayThread))
+#vThread.start()
+#--------------------------------------------------------------
 
 #main game recursive time looping function
 def Advance(carLine, iteration, fasterIteration, score):
-# global woof
-    #if woof.is_alive:
-    #   woof.join()
     #check if ate bone
-    dogPos = doggy.getDogPos()
-    bonePos = doggy.getBonePos()
+    dogPos = dogPlayer.getDogPos()
+    bonePos = dogPlayer.getBonePos()
     lblPlus5.grid_forget()
-    #print("dogpos: ", dogPos)
-    #print("bonepos: ", bonePos)
     if dogPos == bonePos:
-        print("GOT BONE")
-        #woof.start()
+        #print("GOT BONE")
         woof = threading.Thread(target=playsound, args=('assets/trimmedWoof.wav',), daemon=True)
         woof.start()
-        doggy.neutralizeBonePos()
+        dogPlayer.neutralizeBonePos()
         lblBone.grid_forget()
         score = score + 5
-        #lblLine0 = tk.Label(window, text = "*SCORE: "+ str(score) + "*", image=pls5, compound='center')
-        #lblLine0.grid(row=1, column=0, columnspan=5)
-        #lblLine0 = tk.Label(window, text = "*SCORE: "+ str(score) + "*")
-        #lblLine0.grid_forget()
         lblPlus5.grid(row=1, column=3)
-        
-        #woof = multiprocessing.Process(target=playsound, args=("woof.mp3",))
-    #matrix[0][0] = 0
-    #matrix[0][1] = 0
-    #matrix[0][2] = 0
-    #matrix[0][3] = 0
-    #matrix[0][4] = 0
-    #lblCar.grid_forget()
-    #lblFzero.grid_forget()
-    #lblbatMobile.grid_forget()
+
+    #iteration based game logic - # of rows cars have moved down
+    #check if collision happened
     if iteration == 4:
         for y in range (5):
             if carLine[y] == 1:
-                if y == doggy.getDogPos():
+                if y == dogPlayer.getDogPos():
                     #exit()
                     #song.stop() 
                     lblCar.grid_forget()
@@ -409,11 +385,8 @@ def Advance(carLine, iteration, fasterIteration, score):
                     button1.grid_forget()
                     button2.grid_forget()
                     window.unbind_all('<Key>')
-                    doggy.done = True
-                    doggy.setDone()
-                    #time.sleep(1)
-                    #window.destroy()
-                    #playsound('explode.wav', False)
+                    dogPlayer.done = True
+                    dogPlayer.setDone()
                     return
         lblCar.grid_forget()
         lblFzero.grid_forget()
@@ -423,13 +396,13 @@ def Advance(carLine, iteration, fasterIteration, score):
         iteration = iteration - 4
         
 
-
+    #generate bone 
     if iteration == 0:
         #dogbone
-        bonePos = doggy.calcBonePos()
-        dogPos = doggy.getDogPos()
+        bonePos = dogPlayer.calcBonePos()
+        dogPos = dogPlayer.getDogPos()
         while bonePos == dogPos:
-            bonePos = doggy.calcBonePos()
+            bonePos = dogPlayer.calcBonePos()
         lblBone.grid(row=5, column = bonePos)
 
         #ai bot find bone
@@ -440,10 +413,10 @@ def Advance(carLine, iteration, fasterIteration, score):
             AIBot.safe = False
             # AIThread = Thread(target=partial(AIBotThread))
             # AIThread.start()
- 
 
 
-#init top row
+
+        #init top row, car line
         possibleNumCars  = [2,3,4]
         numCars = random.choice(possibleNumCars)
         possibleColumn = [0,1,2,3,4]
@@ -539,24 +512,14 @@ def Advance(carLine, iteration, fasterIteration, score):
                     lblMysMachine.grid(row=5, column=y)
                 count = count + 1
     
-                
-
-
-
-
-    print(carLine)
+    #increment interation, score, and acceleration appropriately
     iteration = iteration + 1
     #print(iteration)
     score = score +1
     lblLine0 = tk.Label(window, text = "*SCORE: "+ str(score) + "*")
     lblLine0.grid(row=1, column=0, columnspan=5)
-
-    # if mode == 1:
-    #     AIThread.join()
-
     #speed up game over time
     fasterIteration = fasterIteration + 1 # by 5
-    #print("faster: ", fasterIteration)
     if fasterIteration<12:
         window.after(600, Advance, carLine, iteration, fasterIteration, score)
     if fasterIteration>=12 and fasterIteration<24: #and
@@ -568,74 +531,14 @@ def Advance(carLine, iteration, fasterIteration, score):
     if fasterIteration>=36:
         AIBot.accel = "veryfast"
         window.after(200, Advance, carLine, iteration, fasterIteration, score)
-        
-    #if fasterIteration<25:
-    #  window.after(200, Advance, carLine, iteration, fasterIteration)
-#end of advance definition
+#-------------------------------------------------------------------------------------------
 
-#threading.Thread(target=playsound, args=('shovelKnightSong.mp3',), daemon=True).start()
-#song = vlc.MediaPlayer("shovelKnightSong.mp3")
-
-#song = vlc.MediaPlayer("assets/highway.mp3") 
-#song.play()
+#default vars before Advance() loop is called
 carLine = [0,0,0,0,0]
 iteration = 0
 fasterIteration = 0
 Advance(carLine, iteration, fasterIteration, score)
 
 
-
+#tkinter window/root mainloop end
 window.mainloop()
-
-
-    
-
-#multithread starts - run in parallel
-#gameThread = Thread(target=partial(mainGameThread))
-#gameThread.start()
-
-
-
-    
-
-
-
-#AIThread.join() #find ddifferent way to end threads/whole program
-#vThread.join()
-
-# while doggy.done == False:
-#     if doggy.done == True:
-#         exit()
-
-
-
-###################################################################################################################################################################################
-
-
-
-    
-#AIBot = Bot(False, False, 2)
-
-
-            
-
-
-
-####################################################################################################################################################################
-
-def virtualInputDisplayThread(): #TODO create UI for button inputs/highlights - highlight when call update lbl in AI thread methods -- tkinter widgets?
-    while doggy.done == False:
-        print("visual comp test thread")          #add extra grid row on bottom? just change picture/label to highlight inputs - could also coordinate with human inputs
-        time.sleep(2)
-
-
-
-#if AI mode start AI related threads
-if mode == 1:
-    vThread = Thread(target=partial(virtualInputDisplayThread))
-    #vThread.start()
-
-    AIThread = Thread(target=partial(AIBotThread))
-    AIThread.start()
-
-    
