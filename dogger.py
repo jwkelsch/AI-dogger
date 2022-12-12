@@ -22,7 +22,7 @@ from functools import partial
 #mode 2 = AI mode
 #mode 3 = base game + updating inputs
 #mode 4 = AI + updating inputs (all threads)
-mode = 2
+mode = 1
 
 #--------------------------------------------------------------
 #class and function definitions
@@ -261,7 +261,7 @@ window.grid_rowconfigure(3, weight=1, uniform="key")
 window.grid_rowconfigure(4, weight=1, uniform="key")
 window.grid_rowconfigure(5, weight=1, uniform="key")
 score = 0
-lblInstrucs = tk.Label(window, text = "DOGE THE CARS!! (use buttons or Left/Right arrow keys to play")
+lblInstrucs = tk.Label(window, text = "DODGE THE CARS!! (use buttons or Left/Right arrow keys to play")
 lblLine0 = tk.Label(window, text = "*SCORE: "+ str(score) + "*")
 
 #dog image manipulation
