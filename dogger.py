@@ -22,7 +22,7 @@ from functools import partial
 #mode 2 = AI mode
 #mode 3 = base game + updating inputs
 #mode 4 = AI + updating inputs (all threads)
-mode = 1
+mode = 2
 
 #--------------------------------------------------------------
 #class and function definitions
