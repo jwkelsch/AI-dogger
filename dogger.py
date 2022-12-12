@@ -1,3 +1,6 @@
+#Jackson Kelsch - Intro to AI
+#--------------------------------------------------------------
+#imports
 from tkinter import *
 import tkinter as tk
 from PIL import Image, ImageTk
@@ -11,13 +14,15 @@ import threading
 #from multiprocessing import Process
 from threading import Thread
 from functools import partial
+#--------------------------------------------------------------
 
-#mode 1 = base game mode
+#mode selection:
+
+#mode 1 = base game mode (use left/right arrow keys on keyboard to play)
 #mode 2 = AI mode
 #mode 3 = base game + updating inputs
 #mode 4 = AI + updating inputs (all threads)
-mode = 1
-#threads on ~line 350 if want to enable button update thread
+mode = 2
 
 #--------------------------------------------------------------
 #class and function definitions
@@ -49,8 +54,6 @@ class Bot:
         if direction == "right":
             AIBot.pos = dogPlayer.getDogPos()
             while amountMove > 0:
-                #dogPlayer.forceRight()
-                #dogPlayer.setDog(dogPlayer.getDogPos()+1)
                 goRight()
                 AIBot.pos = dogPlayer.getDogPos()
                 updateDoglbl()
@@ -62,8 +65,6 @@ class Bot:
         if direction == "left":
             AIBot.pos = dogPlayer.getDogPos()
             while amountMove > 0:
-                #dogPlayer.forceLeft()
-                #dogPlayer.setDog(dogPlayer.getDogPos()-1)
                 goLeft()
                 AIBot.pos = dogPlayer.getDogPos()
                 updateDoglbl()
@@ -123,8 +124,6 @@ class Bot:
 def AIBotThread(): #reacts accordingly to changing game state
     time.sleep(.1) #initial microsleep to delay start until after main window loops
     while dogPlayer.done == False:
-        #print("test")
-        #time.sleep(2)
         AIBot.pos = dogPlayer.getDogPos()
         currPos = AIBot.pos 
         while AIBot.boneGot == False:
@@ -141,7 +140,7 @@ def AIBotThread(): #reacts accordingly to changing game state
             #reset to false when last iteration in main game/reset row on top, bonegot/safe
 #--------------------------------------------------------------
 #        
-#class for player info and general game info/calculations
+#class for player info and general game info/calculations (main game)
 class Dog:
     def __init__(self, posi, done):
         self.pos = posi
@@ -189,7 +188,6 @@ def updateDoglbl():
 
 def goLeft():
     dPos = dogPlayer.getDogPos()
-    #print('d = ',dPos)
     if dPos>0:
         dogPlayer.setDog(dPos-1)
         dPos = dPos-1
@@ -197,11 +195,9 @@ def goLeft():
         Llabel.configure(image=LlabelGreen)
         LRinputs.statusL = True
         print('left')
-        #print('current column: ', dPos) 
 
 def goRight():
     dPos = dogPlayer.getDogPos()
-    #print('d = ',dPos)
     if dPos<4:
         dogPlayer.setDog(dPos+1)
         dPos = dPos+1
@@ -209,7 +205,6 @@ def goRight():
         Rlabel.configure(image=RlabelGreen)
         LRinputs.statusR = True
         print('right')
-        #print('current column: ', dPos)  
 
 #bind left right arrow keys on keyboard
 def any_keypress(event):
@@ -231,14 +226,13 @@ def any_keypress(event):
     if event.keysym == "Escape":
         window.destroy()
 
+#unhighlight funcs for updating arrow displays - run on separate thread
 def unhighlightRarrow():
-    #print("in unhighlight R")
     time.sleep(.05)
     Rlabel.configure(image=RlabelBlank)
     LRinputs.statusR = False
 
 def unhighlightLarrow():
-    #print("in unhighlight L")
     time.sleep(.05)
     Llabel.configure(image=LlabelBlank)
     LRinputs.statusL = False
@@ -254,9 +248,6 @@ AIBot = Bot(False, False, 2, [0, 0, 0, 0, 0], "slow")
 window = tk.Tk()
 window.bind_all('<Key>', any_keypress) #bind keypresses to window and function defined above
 window.attributes("-topmost", True)
-# window.lift()
-# window.focus_force()
-# window.focus_set()
 window.bind('<Escape>', lambda e: closeWindow(e))
 window.geometry('1000x600')
 window.title("Dogger: Not Frogger")
@@ -348,6 +339,7 @@ plus5 = Image.open('assets/plus5.png')
 newPlus5 = plus5.resize((100,50))
 pls5 = ImageTk.PhotoImage(newPlus5)
 lblPlus5 = tk.Label(window, image=pls5)
+
  #--------------------------------------------------------------  THREADS *****************************************************
 AIThread = Thread(target=partial(AIBotThread))
 vThread = Thread(target=partial(virtualInputDisplayThread))
@@ -356,15 +348,14 @@ vThread = Thread(target=partial(virtualInputDisplayThread))
 if mode == 2:
     AIThread.start()
 
+#start input updating thread if selected
 if mode ==3:
     vThread.start()
 
+#start both threads if selected
 if mode == 4:
     AIThread.start()
     vThread.start()
-
-#
-#vThread.start()
 #--------------------------------------------------------------
 
 #main game recursive time looping function
@@ -420,12 +411,10 @@ def Advance(carLine, iteration, fasterIteration, score):
         lblBone.grid(row=5, column = bonePos)
 
         #ai bot find bone
-        if mode == 2 or mode == 4: ################################################################## reset flags here
+        if mode == 2 or mode == 4: ################################################################## reset flags here for AI thread
             AIBot.boneGot = False
             time.sleep(.005)        # have to microsleep here to make sure bonemovement happens first in thread (whole thread looping constantly - need to hit right conditional at appropriate time)
             AIBot.safe = False
-            # AIThread = Thread(target=partial(AIBotThread))
-            # AIThread.start()
 
         #init top row, car line
         possibleNumCars  = [2,3,4]
@@ -549,7 +538,6 @@ carLine = [0,0,0,0,0]
 iteration = 0
 fasterIteration = 0
 Advance(carLine, iteration, fasterIteration, score)
-
 
 #tkinter window/root mainloop end
 window.mainloop()
